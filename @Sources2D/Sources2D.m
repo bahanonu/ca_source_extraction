@@ -11,7 +11,10 @@ classdef Sources2D < handle
         b;          % spatial components of backgrounds
         f;          % temporal components of backgrounds
         S;          % spike counts 
-        Coor;       % neuron contours 
+        Coor;       % neuron contours         
+        Df;         % background for each component to normalize the filtered raw data  
+        C_df;       % temporal components of neurons and background normalized by Df        
+        S_df;       % spike counts of neurons normalized by Df
         options;    % options for model fitting 
         P;          % some estimated parameters 
     end
@@ -42,6 +45,11 @@ classdef Sources2D < handle
             [obj.A, obj.C, obj.b, obj.f, center] = initialize_components(Y, K, tau, obj.options);
         end
         
+        %% manual refinement
+        function center = refineComponents(Y,obj,center,img,sx)
+            [obj.A,obj.C,center] = manually_refine_components(Y,obj.A,obj.C,center,img,sx,obj.options);
+        end
+        
         %% update spatial components
         function updateSpatial(obj, Y)
             [obj.A, obj.b, obj.C] = update_spatial_components(Y, ...
@@ -49,21 +57,15 @@ classdef Sources2D < handle
         end
         
         %% update temporal components
-        function Y_res = updateTemporal(obj, Y)
-            [obj.C, obj.f, Y_res, obj.P, obj.S] = update_temporal_components(...
+        function updateTemporal(obj, Y)
+            [obj.C, obj.f, obj.P, obj.S] = update_temporal_components(...
                 Y, obj.A, obj.b, obj.C, obj.f, obj.P, obj.options);
         end
-        
-        %% update temporal components in parallel
-        function Y_res = updateTemporalParallel(obj, Y)
-            [obj.C, obj.f, Y_res, obj.P, obj.S] = update_temporal_components_parallel(...
-                Y, obj.A, obj.b, obj.C, obj.f, obj.P, obj.options);
-        end
-                
+                       
         %% merge found components
-        function [nr, merged_ROIs] = merge(obj, Y_res)
+        function [nr, merged_ROIs] = merge(obj, Y)
             [obj.A, obj.C, nr, merged_ROIs, obj.P, obj.S] = merge_components(...
-                Y_res,obj.A, obj.b, obj.C, obj.f, obj.P,obj.S, obj.options);
+                Y,obj.A, obj.b, obj.C, obj.f, obj.P,obj.S, obj.options);
         end
         
         %% compute the residual
@@ -81,13 +83,17 @@ classdef Sources2D < handle
         end
         
         %% extract DF/F signal after performing NMF
-        function [C_df, Df, S_df] = extractDF_F(obj, Y, i)
+        function [C_df, Df] = extractDF_F(obj, Y, i)
             if ~exist('i', 'var')
                 i = size(obj.A, 2) + 1;
             end
             
-            [C_df, Df, S_df] = extract_DF_F(Y, [obj.A, obj.b],...
-                [obj.C; obj.f], obj.S, i);
+            [obj.C_df, obj.Df] = extract_DF_F(Y, [obj.A, obj.b],...
+                [obj.C; obj.f], i);
+            
+            C_df =  obj.C_df;
+            Df = obj.Df;
+            
         end
         
         %% order_ROIs 
@@ -111,6 +117,14 @@ classdef Sources2D < handle
                 Cn = []; 
             end
             view_components(Y, obj.A, obj.C, obj.b, obj.f, Cn, obj.options); 
+        end 
+        
+        %% plot components GUI
+        function plotComponentsGUI(obj, Y, Cn)
+            if ~exist('Cn', 'var')
+                Cn = []; 
+            end
+            plot_components_GUI(Y,obj.A,obj.C,obj.b,obj.f,Cn,obj.options)
         end 
         
         %% make movie 

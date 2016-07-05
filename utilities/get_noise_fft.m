@@ -11,10 +11,19 @@
         block_size = options.block_size;
         if ~isfield(options,'split_data'); options.split_data = defoptions.split_data; end
         split_data = options.split_data;
+        if ~isfield(options,'max_timesteps') || isempty(options.max_timesteps); 
+            options.max_timesteps = defoptions.max_timesteps;
+        end
         
         dims = ndims(Y);
         sizY = size(Y);
-        N = sizY(end);
+        N = min(sizY(end),options.max_timesteps);
+        if N < sizY(end)
+           %Y = reshape(Y,prod(sizY(1:end-1)),[]);
+           Y(prod(sizY(1:end-1))*N+1:end) = [];
+           Y = reshape(Y,[sizY(1:end-1),N]);
+        end
+        
         Fs = 1;        
         ff = 0:Fs/N:Fs/2;
         indf=ff>range_ff(1);
@@ -24,10 +33,11 @@
             Y = reshape(Y,d,N);
             Nb = prod(block_size);
             SN = cell(ceil(d/Nb),1);
+            PSDX = cell(ceil(d/Nb),1);
             if ~split_data
                 for ind = 1:ceil(d/Nb); 
                     xdft = fft(Y((ind-1)*Nb+1:min(ind*Nb,d),:),[],2); 
-                    xdft = xdft(:,1:N/2+1);
+                    xdft = xdft(:,1: floor(N/2)+1); % FN: floor added.
                     psdx = (1/(Fs*N)) * abs(xdft).^2;
                     psdx(:,2:end-1) = 2*psdx(:,2:end-1);
                     %SN{ind} = mean_psd(psdx(:,indf),method);
@@ -39,13 +49,14 @@
                         case 'logmexp'
                             SN{ind} = sqrt(exp(mean(log(psdx(:,indf)/2),2)));
                     end
+                    PSDX{ind} = psdx;
                 end
             else
                 nc = ceil(d/Nb);
                 Yc = mat2cell(Y,[Nb*ones(nc-1,1);d-(nc-1)*Nb],N);
                 parfor ind = 1:ceil(d/Nb); 
                     xdft = fft(Yc{ind},[],2); 
-                    xdft = xdft(:,1:N/2+1);
+                    xdft = xdft(:,1:floor(N/2)+1);
                     psdx = (1/(Fs*N)) * abs(xdft).^2;
                     psdx(:,2:end-1) = 2*psdx(:,2:end-1);
                     Yc{ind} = [];
@@ -63,7 +74,7 @@
             sn = cell2mat(SN);
         else
             xdft = fft(Y);
-            xdft = xdft(:,1:N/2+1);
+            xdft = xdft(:,1:floor(N/2)+1);
             psdx = (1/(Fs*N)) * abs(xdft).^2;
             psdx(:,2:end-1) = 2*psdx(:,2:end-1);
             switch method
@@ -75,7 +86,7 @@
                     sn = sqrt(exp(mean(log(psdx(:,indf)/2),2)));
             end
         end
-        clear psdx
+        psdx = cell2mat(PSDX);
         if dims > 2
             sn = reshape(sn,sizY(1:dims-1));
         end

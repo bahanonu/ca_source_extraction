@@ -6,7 +6,7 @@ The code implements a method for simultaneous source extraction and spike infere
 
 The algorithm is presented in more detail in
 
-Pnevmatikakis, E.A., Soudry, D., Gao, Y., Machado, T., Merel, J., ... & Paninski, L. (2016). Simultaneous denoising, deconvolution, and demixing of calcium imaging data. Neuron, in press, http://dx.doi.org/10.1016/j.neuron.2015.11.037
+Pnevmatikakis, E.A., Soudry, D., Gao, Y., Machado, T., Merel, J., ... & Paninski, L. (2016). Simultaneous denoising, deconvolution, and demixing of calcium imaging data. Neuron 89(2):285-299, http://dx.doi.org/10.1016/j.neuron.2015.11.037
 
 Pnevmatikakis, E.A., Gao, Y., Soudry, D., Pfau, D., Lacefield, C., ... & Paninski, L. (2014). A structured matrix factorization framework for large scale calcium imaging data analysis. arXiv preprint arXiv:1409.2903. http://arxiv.org/abs/1409.2903
 
@@ -22,7 +22,7 @@ This repository contains a MATLAB implementation of the spatio-temporal demixing
 
 ## Python
 - [Constrained deconvolution for neural activity (spike) extraction](https://github.com/epnev/constrained_foopsi_python)
-- [Source extraction with CNMF](https://github.com/agiovann/SOURCE_EXTRACTION_PYTHON)
+- [Source extraction with CNMF](https://github.com/agiovann/Constrained_NMF)
 - [Group LASSO initialization and spatial CNMF](https://github.com/danielso/ROI_detect)
 
 ## Integration with other libraries
@@ -49,12 +49,16 @@ Depending on the settings the following toolboxes may also be required
 
 The default options for the algorithm require the following packages:
 
-- The CVX library which can be downloaded from http://cvxr.com/cvx/download/ (follow the installation instructions provided there)
+- The CVX library which can be downloaded from http://cvxr.com/cvx/download/ (after unpacking CVX open Matlab and run cvx_setup from inside the CVX directory to properly install and add CVX to the Matlab path)
 
 Depending on the settings the following packages may also be required
 
 - SPGL1 package from https://github.com/mpf/spgl1 (for solving constrained_foopsi using SPGL1)
 - Bayesian spike inference package from https://github.com/epnev/continuous_time_ca_sampler (for using the 'MCMC" deconvolution method).
+
+Wiki
+=======
+Some issues are covered in the [wiki](https://github.com/epnev/ca_source_extraction/wiki). More pages will be added and suggestions are welcome.
 
 Questions, comments, issues
 =======

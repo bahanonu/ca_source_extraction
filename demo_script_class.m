@@ -1,5 +1,5 @@
 clear;
-% same demo as demo_script.m but using the clas @Sources2D
+% same demo as demo_script.m but using the class @Sources2D
 %% load file
 
 addpath(genpath('utilities'));
@@ -10,6 +10,7 @@ num2read=2000;					% user input: how many frames to read   (optional, default un
 
 Y = bigread2(nam,sframe,num2read);
 if ~isa(Y,'double');    Y = double(Y);  end         % convert to double
+Y = Y - min(Y(:));                                  % make data non-negative
 
 [d1,d2,T] = size(Y);                                % dimensions of dataset
 d = d1*d2;                                          % total number of pixels
@@ -40,25 +41,31 @@ Y = preprocess(obj,Y,p);
 center = initComponents(obj, Y, K, tau);
 
 % display centers of found components
-Cn =  correlation_image(Y); %max(Y,[],3); %std(Y,[],3); % image statistic (only for display purposes)
+Cn =  reshape(obj.P.sn,d1,d2); %correlation_image(Y); %max(Y,[],3); %std(Y,[],3); % image statistic (only for display purposes)
 figure;imagesc(Cn);
     axis equal; axis tight; hold all;
     scatter(center(:,2),center(:,1),'mo');
     title('Center of ROIs found from initialization algorithm');
     drawnow;
 
+%% manually refine components (optional)
+refine_components = false;  % flag for manual refinement
+if refine_components
+    [center] = refineComponents(Y,obj,center,Cn,tau);
+end
+    
 %% update spatial components
 Yr = reshape(Y,d,T);
 clear Y;
 updateSpatial(obj, Yr);
 
 %% update temporal components
-Y_res = updateTemporal(obj, Yr);
+updateTemporal(obj, Yr);
 
 %% merge found components
 Apr = obj.A;    % store non-merged components
 Cpr = obj.C;
-[K_m, merged_ROIs] = merge(obj, Y_res);
+[K_m, merged_ROIs] = merge(obj, Yr);
 display_merging = 1; % flag for displaying merging example
 if display_merging
     i = 1; randi(length(merged_ROIs));
@@ -80,18 +87,19 @@ end
 
 %% repeat
 updateSpatial(obj, Yr);
-Y_res = updateTemporal(obj, Yr);
-[C_df, ~, S_df] = extractDF_F(obj, Yr, K_m+1);
+updateTemporal(obj, Yr);
 
 %% do some plotting
-
 [srt] = orderROIs(obj);     % order components
+K_m = size(obj.C,1);
+[C_df, ~, S_df] = extractDF_F(obj, Yr, K_m+1); % extract DF/F values.
+
 contour_threshold = 0.95;   % amount of energy used for each component to construct contour plot
 figure;
 [json_file] = viewContours(obj, Cn, contour_threshold, 1);
-pause; 
 %savejson('jmesh',json_file,'filename');        % optional save json file with component coordinates (requires matlab json library)
-plotComponents(obj, Yr, Cn);     % display all components
-%% make movie
 
+plotComponentsGUI(obj, Yr, Cn);     % display all components
+pause;
+%% make movie
 makePatchVideo(obj, Yr) 
